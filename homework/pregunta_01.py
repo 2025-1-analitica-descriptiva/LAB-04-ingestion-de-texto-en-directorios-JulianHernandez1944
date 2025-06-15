@@ -3,10 +3,98 @@
 # flake8: noqa
 """
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
-"""
 
+"""
+import pandas as pd
+import os
+import zipfile
 
 def pregunta_01():
+    def generar_datasets():
+        # Ruta de los archivos
+        input_path = "files/input.zip"
+        output_path = "files/output"
+        extract_folder = "files/input"
+
+        # Descomprimir el archivo ZIP si no ha sido descomprimido previamente
+        if not os.path.exists(extract_folder):
+            print("Descomprimiendo archivo ZIP...")
+            with zipfile.ZipFile(input_path, 'r') as zip_ref:
+                zip_ref.extractall("files")
+
+        # Crear la carpeta de salida si no existe
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
+
+        # Verificar la estructura de carpetas después de descomprimir
+        print("Verificando la estructura de directorios descomprimidos...")
+        for root, dirs, files in os.walk(extract_folder):
+            print(f"Directorio: {root}, Subdirectorios: {dirs}, Archivos: {files}")
+
+        # Función para crear el dataset a partir de un directorio de entrada
+        def crear_dataset(directorio):
+            data = []
+            for sentiment in ["negative", "positive", "neutral"]:
+                sentiment_folder = os.path.join(directorio, sentiment)
+                if not os.path.exists(sentiment_folder):
+                    print(f"Advertencia: No se encontró la carpeta {sentiment_folder}")
+                    continue
+                for filename in os.listdir(sentiment_folder):
+                    if filename.endswith(".txt"):
+                        filepath = os.path.join(sentiment_folder, filename)
+                        with open(filepath, 'r', encoding="utf-8") as f:
+                            phrase = f.read().strip()
+                        data.append({"phrase": phrase, "target": sentiment})
+            return data
+
+        # Crear datasets para 'train' y 'test'
+        print("Generando dataset para 'train'...")
+        train_data = crear_dataset(os.path.join(extract_folder, "train"))
+        print(f"Se generaron {len(train_data)} registros para 'train'.")
+
+        print("Generando dataset para 'test'...")
+        test_data = crear_dataset(os.path.join(extract_folder, "test"))
+        print(f"Se generaron {len(test_data)} registros para 'test'.")
+
+        # Si los datasets están vacíos, se reporta un problema
+        if not train_data or not test_data:
+            print("Error: No se generaron datos para los datasets.")
+            return
+
+        # Convertir las listas de datos en DataFrames
+        train_df = pd.DataFrame(train_data)
+        test_df = pd.DataFrame(test_data)
+
+        # Verificar que los DataFrames contienen datos
+        print(f"Train dataset tiene {len(train_df)} filas.")
+        print(f"Test dataset tiene {len(test_df)} filas.")
+
+        # Guardar los datasets como CSV en la carpeta output
+        try:
+            if not train_df.empty:
+                print("Guardando 'train_dataset.csv'...")
+                train_df.to_csv(os.path.join(output_path, "train_dataset.csv"), index=False)
+                print("Archivo 'train_dataset.csv' guardado correctamente.")
+            else:
+                print("Advertencia: El dataset de entrenamiento está vacío. No se guardó el archivo 'train_dataset.csv'.")
+
+            if not test_df.empty:
+                print("Guardando 'test_dataset.csv'...")
+                test_df.to_csv(os.path.join(output_path, "test_dataset.csv"), index=False)
+                print("Archivo 'test_dataset.csv' guardado correctamente.")
+            else:
+                print("Advertencia: El dataset de prueba está vacío. No se guardó el archivo 'test_dataset.csv'.")
+        
+        except Exception as e:
+            print(f"Error al guardar los archivos CSV: {e}")
+
+    # Llamada a la función para generar los datasets
+    generar_datasets()
+
+if __name__ == "__main__":
+    pregunta_01()
+
+
     """
     La información requerida para este laboratio esta almacenada en el
     archivo "files/input.zip" ubicado en la carpeta raíz.
